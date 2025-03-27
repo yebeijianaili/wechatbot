@@ -5,6 +5,9 @@ export type Post = {
   date: string;
   content: string;
   excerpt: string;
+  source?: string;
+  sourceUrl?: string;
+  imageUrl?: string;
 };
 
 export const posts: Post[] = [
@@ -118,10 +121,28 @@ You can implement authentication using various libraries like NextAuth.js.
   }
 ];
 
+// 在内存中保存动态添加的新闻文章
+let newsArticles: Post[] = [];
+
 export function getPostBySlug(slug: string): Post | undefined {
-  return posts.find((post) => post.slug === slug);
+  return [...posts, ...newsArticles].find((post) => post.slug === slug);
 }
 
 export function getAllPosts(): Post[] {
-  return posts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  return [...posts, ...newsArticles].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+}
+
+// 添加从新闻API获取的文章
+export function addNewsPosts(newPosts: Post[]): void {
+  // 过滤掉已存在的文章（根据ID）
+  const existingIds = new Set([...posts, ...newsArticles].map(post => post.id));
+  const uniqueNewPosts = newPosts.filter(post => !existingIds.has(post.id));
+  
+  // 添加到新闻文章列表
+  newsArticles = [...uniqueNewPosts, ...newsArticles];
+  
+  // 限制最多保存20篇新闻文章，避免内存占用过多
+  if (newsArticles.length > 20) {
+    newsArticles = newsArticles.slice(0, 20);
+  }
 } 

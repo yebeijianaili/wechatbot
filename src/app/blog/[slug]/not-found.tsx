@@ -1,18 +1,21 @@
+"use client";
+
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export default function NotFound() {
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
-      <h1 className="text-4xl font-bold mb-4">404 - Post Not Found</h1>
-      <p className="text-xl text-gray-600 dark:text-gray-400 mb-8">
-        The blog post you're looking for doesn't exist or may have been moved.
+      <h1 className="text-5xl font-bold mb-6">404</h1>
+      <h2 className="text-3xl font-semibold mb-4">文章未找到</h2>
+      <p className="text-xl text-muted-foreground mb-8 max-w-md">
+        您查找的博客文章不存在或可能已被移动。
       </p>
-      <Link
-        href="/blog"
-        className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-      >
-        View All Posts
-      </Link>
+      <Button asChild size="lg">
+        <Link href="/blog">
+          查看所有文章
+        </Link>
+      </Button>
     </div>
   );
 } 
