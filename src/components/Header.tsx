@@ -47,15 +47,15 @@ export default function Header() {
   }, [open]);
 
   return (
-    <header className="py-4 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-10 bg-background">
+    <header className="py-4 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-10 bg-background/80 backdrop-blur-md">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-4">
-            <Avatar className="h-10 w-10 border-2 border-primary">
+            <Avatar className="h-10 w-10 ring-2 ring-blue-500 shadow-sm">
               <AvatarImage src="https://github.com/shadcn.png" alt="@shadcn" />
-              <AvatarFallback>CN</AvatarFallback>
+              <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white">CN</AvatarFallback>
             </Avatar>
-            <Link href="/" className="text-2xl font-bold text-blue-600 dark:text-blue-400 hidden sm:block">
+            <Link href="/" className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 hidden sm:block transition-transform hover:scale-105">
               My Blog
             </Link>
           </div>
@@ -64,19 +64,28 @@ export default function Header() {
             <Input 
               type="text" 
               placeholder="搜索文章..." 
-              className="w-full"
+              className="w-full pl-10 border-blue-100 dark:border-blue-900/30 focus:ring-blue-500/20 focus:border-blue-400"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              className="h-5 w-5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" 
+              fill="none" 
+              viewBox="0 0 24 24" 
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
           </div>
           
-          <div className="flex items-center space-x-2">
-            <Button variant="ghost" asChild className="hidden sm:inline-flex">
+          <div className="flex items-center space-x-1">
+            <Button variant="ghost" asChild className="hidden sm:inline-flex hover:bg-blue-50 dark:hover:bg-blue-900/20">
               <Link href="/">
                 首页
               </Link>
             </Button>
-            <Button variant="ghost" asChild className="hidden sm:inline-flex">
+            <Button variant="ghost" asChild className="hidden sm:inline-flex hover:bg-blue-50 dark:hover:bg-blue-900/20">
               <Link href="/blog">
                 所有文章
               </Link>
@@ -92,24 +101,24 @@ export default function Header() {
                   </svg>
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right">
+              <SheetContent side="right" className="border-l border-blue-100 dark:border-blue-900/30">
                 <div className="grid gap-4 py-4">
-                  <Button variant="ghost" asChild className="justify-start">
+                  <Button variant="ghost" asChild className="justify-start hover:bg-blue-50 dark:hover:bg-blue-900/20">
                     <Link href="/">
                       首页
                     </Link>
                   </Button>
-                  <Button variant="ghost" asChild className="justify-start">
+                  <Button variant="ghost" asChild className="justify-start hover:bg-blue-50 dark:hover:bg-blue-900/20">
                     <Link href="/blog">
                       所有文章
                     </Link>
                   </Button>
-                  <Button variant="ghost" asChild className="justify-start">
+                  <Button variant="ghost" asChild className="justify-start hover:bg-blue-50 dark:hover:bg-blue-900/20">
                     <Link href="/about">
                       关于我
                     </Link>
                   </Button>
-                  <Button variant="ghost" asChild className="justify-start">
+                  <Button variant="ghost" asChild className="justify-start hover:bg-blue-50 dark:hover:bg-blue-900/20">
                     <Link href="/contact">
                       联系方式
                     </Link>
