@@ -21,11 +21,12 @@ export default function ChatBot() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  // 自动滚动到最新消息
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+  // 删除自动滚动效果
+  // useEffect(() => {
+  //   scrollToBottom();
+  // }, [messages]);
 
+  // 保留函数但不自动调用，允许手动触发滚动
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };

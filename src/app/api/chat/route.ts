@@ -8,6 +8,9 @@ const API_URL = "https://api.siliconflow.cn/v1/chat/completions";
 // 使用的模型，可以根据SiliconFlow提供的模型列表进行调整
 const MODEL = process.env.SILICONFLOW_MODEL || "Qwen/Qwen2.5-72B-Instruct";
 
+// 调试模式：如果API密钥是占位符，使用模拟数据
+const DEBUG_MODE = SILICONFLOW_API_KEY === "your_api_key_here";
+
 export async function POST(request: Request) {
   try {
     const { message } = await request.json();
@@ -17,6 +20,16 @@ export async function POST(request: Request) {
         { error: "消息不能为空" },
         { status: 400 }
       );
+    }
+
+    // 调试模式：返回模拟数据
+    if (DEBUG_MODE) {
+      console.log("调试模式：返回模拟数据而不是调用API");
+      await new Promise(resolve => setTimeout(resolve, 1000)); // 模拟网络延迟
+      
+      return NextResponse.json({
+        reply: `[调试模式] 你好！我是夜北见。你说: "${message}"\n\n这是一条模拟回复，因为您尚未设置有效的SiliconFlow API密钥。请在.env.local文件中设置有效的API密钥后重启服务器。😊`
+      });
     }
 
     // 构建请求体
