@@ -106,6 +106,14 @@ export default function Header() {
                 所有文章
               </Link>
             </Button>
+            <Button variant="ghost" asChild className="hidden sm:inline-flex hover:bg-blue-50 dark:hover:bg-blue-900/20">
+              <Link href="/chat">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                聊天
+              </Link>
+            </Button>
             
             <Sheet>
               <SheetTrigger asChild>
@@ -127,6 +135,11 @@ export default function Header() {
                   <Button variant="ghost" asChild className="justify-start hover:bg-blue-50 dark:hover:bg-blue-900/20">
                     <Link href="/blog">
                       所有文章
+                    </Link>
+                  </Button>
+                  <Button variant="ghost" asChild className="justify-start hover:bg-blue-50 dark:hover:bg-blue-900/20">
+                    <Link href="/chat">
+                      聊天
                     </Link>
                   </Button>
                   <Button variant="ghost" asChild className="justify-start hover:bg-blue-50 dark:hover:bg-blue-900/20">
