@@ -1,5 +1,5 @@
-// 这里使用NewsAPI示例（在生产环境中，您需要申请真实的API密钥）
-// 申请地址：https://newsapi.org/
+// 使用orz.ai的API获取实时新闻
+// API文档: https://orz.ai/api/v1/dailynews
 
 export type NewsArticle = {
   id: string;
@@ -12,112 +12,123 @@ export type NewsArticle = {
   source: {
     name: string;
   };
+  score?: string;
 };
 
-const API_KEY = process.env.NEWS_API_KEY || 'demo-api-key';
-const BASE_URL = 'https://newsapi.org/v2';
+// API响应数据类型
+type NewsApiItem = {
+  title: string;
+  url: string;
+  score: string;
+  desc: string;
+};
 
-export async function fetchLatestNews(category: string = 'technology', pageSize: number = 10): Promise<NewsArticle[]> {
+type NewsApiResponse = {
+  status: string;
+  data: NewsApiItem[];
+  msg: string;
+};
+
+// 支持的平台列表
+export const PLATFORMS = [
+  'baidu',
+  'zhihu',
+  'weibo',
+  'jinritoutiao',
+  'bilibili',
+  'douyin',
+  'juejin',
+  'douban',
+  '36kr',
+] as const;
+
+export type NewsPlatform = typeof PLATFORMS[number];
+
+const BASE_URL = 'https://orz.ai/api/v1/dailynews';
+
+// 平台对应的显示名称
+const PLATFORM_NAMES: Record<NewsPlatform, string> = {
+  'baidu': '百度热搜',
+  'zhihu': '知乎热榜',
+  'weibo': '微博热搜',
+  'jinritoutiao': '今日头条',
+  'bilibili': 'B站热榜',
+  'douyin': '抖音热点',
+  'juejin': '掘金热榜',
+  'douban': '豆瓣热榜',
+  '36kr': '36氪热榜'
+};
+
+// 从平台名称获取合适的封面图
+function getCoverImageForPlatform(platform: NewsPlatform): string {
+  const images: Record<NewsPlatform, string> = {
+    'baidu': 'https://img1.baidu.com/it/u=2180355917,3968563067&fm=253&fmt=auto&app=138&f=JPEG?w=500&h=500',
+    'zhihu': 'https://static.zhihu.com/heifetz/assets/apple-touch-icon-60.362a8eac.png',
+    'weibo': 'https://n.sinaimg.cn/finance/350/w200h150/20181009/C190-hmhafiq8483273.png', 
+    'jinritoutiao': 'https://sf1-cdn-tos.toutiaostatic.com/obj/artic-frontend/toutiao_web_pc/svgs/toutiao_logo.76db5ae.svg',
+    'bilibili': 'https://i0.hdslb.com/bfs/archive/85cc1561ebf9cb239a7e42fb951be79823abe78c.jpg@672w_378h_1c_!web-search-common-cover.webp',
+    'douyin': 'https://p3-pc.douyinpic.com/img/aweme-avatar/1000~c5_200x200.jpeg?from=2956013662',
+    'juejin': 'https://lf3-cdn-tos.bytescm.com/obj/static/xitu_juejin_web/7abc2b532f725d394feaf0141547ade7.svg',
+    'douban': 'https://img2.doubanio.com/view/subject/s/public/s1556748.jpg',
+    '36kr': 'https://static.36krcdn.com/36kr-web/static/icon_36kr_512@2x.dd0facb2.png'
+  };
+  
+  return images[platform] || '';
+}
+
+export async function fetchLatestNews(platform: NewsPlatform = 'jinritoutiao', limit: number = 10): Promise<NewsArticle[]> {
   try {
-    // 在真实环境中，使用下面的代码获取数据
-    // const response = await fetch(
-    //   `${BASE_URL}/top-headlines?category=${category}&pageSize=${pageSize}&language=en&apiKey=${API_KEY}`
-    // );
-    // if (!response.ok) throw new Error('Failed to fetch news');
-    // const data = await response.json();
-    // return data.articles.map((article: any, index: number) => ({
-    //   id: `news-${index}-${Date.now()}`,
-    //   ...article
-    // }));
+    // 发送请求获取实时新闻
+    const response = await fetch(`${BASE_URL}/?platform=${platform}`);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch news from ${platform}, status: ${response.status}`);
+    }
+    
+    const data = await response.json() as NewsApiResponse;
+    
+    if (data.status !== "200" || !Array.isArray(data.data)) {
+      throw new Error(`Invalid response from API: ${JSON.stringify(data)}`);
+    }
+    
+    // 转换API返回的数据为我们需要的格式
+    const articles: NewsArticle[] = data.data.slice(0, limit).map((item: NewsApiItem, index: number) => {
+      const platformName = PLATFORM_NAMES[platform] || platform;
+      const currentDate = new Date().toISOString();
+      
+      // 为文章生成内容
+      const content = `
+# ${item.title}
 
-    // 为了演示，使用模拟数据
-    return getMockNewsData();
+${item.desc || `这是一条来自${platformName}的热门话题，当前热度为 ${item.score || '很高'}。`}
+
+## 热度
+
+当前热度: ${item.score || '未知'}
+
+## 来源
+
+此内容来自${platformName}，您可以点击[原文链接](${item.url})查看更多信息。
+      `;
+      
+      return {
+        id: `${platform}-${index}-${Date.now()}`,
+        title: item.title,
+        description: item.desc || `来自${platformName}的热门话题`,
+        content,
+        url: item.url,
+        urlToImage: getCoverImageForPlatform(platform),
+        publishedAt: currentDate,
+        source: {
+          name: platformName
+        },
+        score: item.score
+      };
+    });
+    
+    return articles;
   } catch (error) {
     console.error('Error fetching news:', error);
     return [];
   }
-}
-
-// 模拟新闻数据（实际使用时请替换为真实API调用）
-function getMockNewsData(): NewsArticle[] {
-  const currentDate = new Date().toISOString();
-  
-  return [
-    {
-      id: `news-1-${Date.now()}`,
-      title: 'Next.js 15发布：带来了惊人的性能提升',
-      description: 'Vercel发布了Next.js 15，带来了更快的构建时间和新的开发者体验改进。',
-      content: `
-# Next.js 15发布：带来了惊人的性能提升
-
-Vercel最近发布了Next.js的最新版本，提供了更快的Rust编译器和改进的开发者体验。
-
-## 主要特性：
-
-- Turbopack: 基于Rust的新打包工具，比webpack快700倍
-- 服务器组件: 默认启用React服务器组件
-- 更快的构建时间: 静态和动态内容生成速度更快
-- 改进的图像组件: 更好的性能和可访问性
-
-Next.js 15是框架有史以来最大的性能升级之一，用户报告开发环境热重载时间缩短了50%以上。
-      `,
-      url: 'https://nextjs.org/blog/next-15',
-      urlToImage: 'https://nextjs.org/static/blog/next-15/twitter-card.png',
-      publishedAt: currentDate,
-      source: {
-        name: 'Next.js Blog'
-      }
-    },
-    {
-      id: `news-2-${Date.now()}`,
-      title: 'React 19引入新的渲染模型',
-      description: 'React团队宣布了即将推出的React 19版本中的渲染改进。',
-      content: `
-# React 19引入新的渲染模型
-
-React团队最近宣布了React 19的发布，其中包含许多令人兴奋的新特性和改进。
-
-## 亮点：
-
-- 资源加载：新的资源加载APIs
-- 改进的服务器组件：更好的错误处理和数据获取
-- 内置缓存：组件级缓存改进
-- 更快的并发渲染：进一步优化React并发模式
-
-这些变化将使开发者能够构建更快速、更具响应性的应用程序，同时保持对现有React应用的向后兼容性。
-      `,
-      url: 'https://react.dev/blog/2023/03/22/react-19',
-      urlToImage: 'https://react.dev/images/og-home.png',
-      publishedAt: currentDate,
-      source: {
-        name: 'React Blog'
-      }
-    },
-    {
-      id: `news-3-${Date.now()}`,
-      title: 'Tailwind CSS v4.0发布',
-      description: 'Tailwind CSS v4.0包含引擎盖下的完全重写，具有更好的性能。',
-      content: `
-# Tailwind CSS v4.0发布
-
-Tailwind Labs发布了Tailwind CSS的主要新版本，带来了巨大的性能改进和新功能。
-
-## 新特性：
-
-- 使用Lightning CSS进行更快的构建
-- 改进的JIT引擎，提供更快的开发体验
-- 新的动画实用工具
-- 更好的深色模式支持
-- 更小的生产构建包大小
-
-Tailwind CSS v4.0是该库有史以来性能最好的版本，在大型项目中构建时间减少了高达80%。
-      `,
-      url: 'https://tailwindcss.com/blog/tailwindcss-v4',
-      urlToImage: 'https://tailwindcss.com/img/tailwind-twitter-card.jpg',
-      publishedAt: currentDate,
-      source: {
-        name: 'Tailwind CSS Blog'
-      }
-    }
-  ];
 } 

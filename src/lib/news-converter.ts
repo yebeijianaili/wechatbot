@@ -23,6 +23,7 @@ export function convertNewsToPost(article: NewsArticle): Post {
     content: article.content,
     source: article.source.name,
     sourceUrl: article.url,
-    imageUrl: article.urlToImage || ''
+    imageUrl: article.urlToImage || '',
+    score: article.score
   };
 } 

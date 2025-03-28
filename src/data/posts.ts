@@ -8,7 +8,11 @@ export type Post = {
   source?: string;
   sourceUrl?: string;
   imageUrl?: string;
+  score?: string;
 };
+
+// 在内存中保存动态添加的新闻文章
+let newsArticles: Post[] = [];
 
 export const posts: Post[] = [
   {
@@ -120,9 +124,6 @@ You can implement authentication using various libraries like NextAuth.js.
     `
   }
 ];
-
-// 在内存中保存动态添加的新闻文章
-let newsArticles: Post[] = [];
 
 export function getPostBySlug(slug: string): Post | undefined {
   return [...posts, ...newsArticles].find((post) => post.slug === slug);

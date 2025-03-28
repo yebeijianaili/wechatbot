@@ -1,6 +1,5 @@
 import { getAllPosts } from "@/data/posts";
 import BlogCard from "@/components/BlogCard";
-import NewsFetcher from "@/components/NewsFetcher";
 
 export default function Home() {
   const posts = getAllPosts();
@@ -17,12 +16,9 @@ export default function Home() {
       <section className="container mx-auto px-4">
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-3xl font-bold">最新文章</h2>
-          <div className="flex items-center gap-4">
-            <NewsFetcher />
-            <a href="/blog" className="text-blue-600 dark:text-blue-400 hover:underline">
-              查看全部
-            </a>
-          </div>
+          <a href="/blog" className="text-blue-600 dark:text-blue-400 hover:underline">
+            查看全部
+          </a>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {posts.map((post) => (

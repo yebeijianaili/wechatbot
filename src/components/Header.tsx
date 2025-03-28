@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useState, useEffect } from 'react';
-import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
 import { getAllPosts, Post } from "@/data/posts";
 
 export default function Header() {
@@ -20,7 +19,7 @@ export default function Header() {
     setPosts(getAllPosts());
   }, []);
 
-  // 当命令对话框打开或搜索查询更改时过滤文章
+  // 当搜索查询更改时过滤文章
   useEffect(() => {
     if (!search.trim()) {
       setFilteredPosts(posts);
@@ -68,7 +67,6 @@ export default function Header() {
               className="w-full"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              onFocus={() => setOpen(true)}
             />
           </div>
           
@@ -122,38 +120,6 @@ export default function Header() {
           </div>
         </div>
       </div>
-      
-      <CommandDialog open={open} onOpenChange={setOpen}>
-        <CommandInput 
-          placeholder="搜索文章..." 
-          value={search}
-          onValueChange={setSearch}
-        />
-        <CommandList>
-          <CommandEmpty>没有找到相关文章</CommandEmpty>
-          <CommandGroup heading="文章">
-            {filteredPosts.slice(0, 10).map((post) => (
-              <CommandItem key={post.id}>
-                <Link href={`/blog/${post.slug}`} className="flex items-center w-full" onClick={() => setOpen(false)}>
-                  <div className="flex flex-col">
-                    <span>{post.title}</span>
-                    {post.source && (
-                      <span className="text-xs text-muted-foreground">来源: {post.source}</span>
-                    )}
-                  </div>
-                </Link>
-              </CommandItem>
-            ))}
-            {filteredPosts.length > 10 && (
-              <CommandItem>
-                <Link href="/blog" className="text-sm text-muted-foreground" onClick={() => setOpen(false)}>
-                  查看全部 {filteredPosts.length} 篇文章...
-                </Link>
-              </CommandItem>
-            )}
-          </CommandGroup>
-        </CommandList>
-      </CommandDialog>
     </header>
   );
 } 
