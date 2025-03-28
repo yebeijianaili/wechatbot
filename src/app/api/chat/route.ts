@@ -119,6 +119,7 @@ export async function POST(request: Request) {
       return NextResponse.json({
         reply: assistantReply
       });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (apiError: any) {
       clearTimeout(timeoutId);
       if (apiError.name === 'AbortError') {
@@ -130,6 +131,7 @@ export async function POST(request: Request) {
       }
       throw apiError; // 重新抛出其他错误
     }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error("处理聊天请求时出错:", error);
     return NextResponse.json(
