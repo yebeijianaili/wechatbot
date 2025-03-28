@@ -63,7 +63,7 @@ export async function POST(request: Request) {
     try {
       // 尝试解析JSON
       data = JSON.parse(responseText);
-    } catch (parseError) {
+    } catch {
       console.error("API响应解析失败:", responseText);
       return NextResponse.json(
         { error: "API响应格式错误" },
