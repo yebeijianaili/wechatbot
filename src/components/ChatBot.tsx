@@ -46,6 +46,16 @@ export default function ChatBot() {
     setIsLoading(true);
     
     try {
+      // 创建助手消息占位符
+      const assistantMessage: Message = {
+        role: 'assistant',
+        content: '',
+        timestamp: new Date()
+      };
+      
+      // 添加空的助手消息到列表
+      setMessages(prev => [...prev, assistantMessage]);
+      
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
@@ -54,19 +64,51 @@ export default function ChatBot() {
         body: JSON.stringify({ message: input }),
       });
       
-      const data = await response.json();
-      
       if (!response.ok) {
-        throw new Error(data.error || '请求失败');
+        const errorData = await response.json();
+        throw new Error(errorData.error || '请求失败');
       }
       
-      const assistantMessage: Message = {
-        role: 'assistant',
-        content: data.reply,
-        timestamp: new Date()
-      };
+      // 处理流式响应
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('无法获取响应流');
+      }
       
-      setMessages(prev => [...prev, assistantMessage]);
+      const decoder = new TextDecoder();
+      let responseText = '';
+      let partialJSON = '';
+      
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        const chunk = decoder.decode(value, { stream: true });
+        partialJSON += chunk;
+        
+        try {
+          // 尝试解析累积的JSON
+          const result = JSON.parse(partialJSON);
+          
+          if (result.reply !== undefined) {
+            responseText = result.reply;
+            
+            // 更新助手消息内容
+            setMessages(prev => {
+              const newMessages = [...prev];
+              const lastMessage = newMessages[newMessages.length - 1];
+              if (lastMessage && lastMessage.role === 'assistant') {
+                lastMessage.content = responseText;
+              }
+              return newMessages;
+            });
+          }
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        } catch (e) {
+          // JSON不完整，继续累积
+          continue;
+        }
+      }
     } catch (error) {
       console.error('发送消息失败:', error);
       toast({
@@ -74,6 +116,9 @@ export default function ChatBot() {
         description: error instanceof Error ? error.message : "请求异常，请稍后再试",
         variant: "destructive",
       });
+      
+      // 移除失败的助手消息
+      setMessages(prev => prev.slice(0, -1));
     } finally {
       setIsLoading(false);
     }

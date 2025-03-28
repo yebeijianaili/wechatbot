@@ -1,15 +1,14 @@
 import { NextResponse } from 'next/server';
 
-// 环境变量中获取API密钥，如果不存在则使用默认值（实际使用时应替换为你的API密钥）
-// 在实际部署时，需要在.env.local文件中设置这个值
-const SILICONFLOW_API_KEY = process.env.SILICONFLOW_API_KEY || "your_api_key_here";
-// SiliconFlow API接口地址
-const API_URL = "https://api.siliconflow.cn/v1/chat/completions";
-// 使用的模型，可以根据SiliconFlow提供的模型列表进行调整
-const MODEL = process.env.SILICONFLOW_MODEL || "Qwen/Qwen2.5-72B-Instruct";
+// 直接硬编码API密钥和模型（测试用，后续应移回环境变量）
+const SILICONFLOW_API_KEY = "sk-plttdqwxwihwgdriluxwzhifjuhktayxtqnwcmllsejhoxax";
+// 切换到全球负载均衡端点，根据SiliconFlow文档建议
+const API_URL = "https://api.siliconflow.com/v1/chat/completions";
+// 使用指定的模型
+const MODEL = "deepseek-ai/DeepSeek-R1";
 
 // 调试模式：如果API密钥是占位符，使用模拟数据
-const DEBUG_MODE = SILICONFLOW_API_KEY === "your_api_key_here";
+const DEBUG_MODE = false;
 
 // 记录环境变量信息（不包含密钥完整内容）
 console.log(`API环境配置: 模型=${MODEL}, 测试模式=${DEBUG_MODE}, API密钥设置=${SILICONFLOW_API_KEY ? '已设置' : '未设置'}`);
@@ -48,18 +47,20 @@ export async function POST(request: Request) {
         { role: "user", content: message }
       ],
       temperature: 0.7,
-      max_tokens: 800
+      max_tokens: 800,
+      stream: true // 开启流式输出
     };
 
     console.log(`准备向SiliconFlow API发送请求: ${JSON.stringify({
       url: API_URL,
       model: MODEL,
-      messageLength: message.length
+      messageLength: message.length,
+      streamMode: true
     })}`);
 
     // 添加超时控制
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30秒超时
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60秒超时，流式传输通常需要更长时间
 
     try {
       // 发送请求到SiliconFlow API
@@ -67,7 +68,8 @@ export async function POST(request: Request) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${SILICONFLOW_API_KEY}`
+          "Authorization": `Bearer ${SILICONFLOW_API_KEY}`,
+          "Accept": "text/event-stream"
         },
         body: JSON.stringify(requestBody),
         signal: controller.signal
@@ -77,47 +79,82 @@ export async function POST(request: Request) {
 
       console.log(`收到API响应: 状态=${response.status}, 类型=${response.headers.get('content-type')}`);
 
-      // 先获取响应文本
-      const responseText = await response.text();
-      console.log(`响应内容长度: ${responseText.length}字符`);
-      if (responseText.length < 500) {
-        console.log(`响应内容预览: ${responseText.substring(0, 200)}`);
-      }
-      
-      let data;
-      try {
-        // 尝试解析JSON
-        data = JSON.parse(responseText);
-      } catch {
-        console.error("API响应解析失败:", responseText);
-        return NextResponse.json(
-          { error: `API响应格式错误: ${responseText.substring(0, 100)}...` },
-          { status: 500 }
-        );
-      }
-
-      // 检查API响应是否成功
+      // 检查HTTP状态码
       if (!response.ok) {
-        console.error("SiliconFlow API返回错误:", data);
-        return NextResponse.json(
-          { error: data.error?.message || `API请求失败，状态码: ${response.status}` },
-          { status: response.status }
-        );
+        let errorMessage = `API请求失败，状态码: ${response.status}`;
+        try {
+          const errorBody = await response.json();
+          errorMessage = errorBody.error?.message || errorMessage;
+        } catch {
+          // 无法解析错误响应，使用默认错误消息
+        }
+        console.error("SiliconFlow API返回错误:", errorMessage);
+        return NextResponse.json({ error: errorMessage }, { status: response.status });
       }
 
-      // 从API响应中提取助手的回复
-      const assistantReply = data.choices?.[0]?.message?.content;
-      if (!assistantReply) {
-        console.error("API响应缺少必要的字段:", data);
-        return NextResponse.json(
-          { error: "API响应格式不正确，缺少回复内容" },
-          { status: 500 }
-        );
+      // 确保响应是可读流
+      if (!response.body) {
+        throw new Error("响应中没有数据流");
       }
 
-      console.log("请求成功完成，返回回复");
-      return NextResponse.json({
-        reply: assistantReply
+      // 使用流式处理
+      const encoder = new TextEncoder();
+      const decoder = new TextDecoder();
+      
+      const transformStream = new TransformStream({
+        async start(controller) {
+          // 流开始时的初始化
+          controller.enqueue(encoder.encode('{"reply":"'));
+        },
+        async transform(chunk, controller) {
+          // 处理每个数据块
+          const text = decoder.decode(chunk);
+          const lines = text.split('\n').filter(line => line.trim() !== '');
+          
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6); // 移除 'data: ' 前缀
+              
+              if (data === '[DONE]') {
+                // 流结束标记
+                continue;
+              }
+              
+              try {
+                const parsed = JSON.parse(data);
+                const content = parsed.choices[0]?.delta?.content || '';
+                if (content) {
+                  // 处理内容中的双引号和反斜杠以避免JSON解析错误
+                  const escapedContent = content
+                    .replace(/\\/g, '\\\\')
+                    .replace(/"/g, '\\"')
+                    .replace(/\n/g, '\\n')
+                    .replace(/\r/g, '\\r')
+                    .replace(/\t/g, '\\t');
+                  
+                  controller.enqueue(encoder.encode(escapedContent));
+                }
+              } catch (e) {
+                console.error('解析数据块失败:', e, data);
+              }
+            }
+          }
+        },
+        async flush(controller) {
+          // 流结束时完成JSON
+          controller.enqueue(encoder.encode('"}'));
+        }
+      });
+
+      // 使用 ReadableStream.pipeThrough 将响应流传递给转换流
+      const stream = response.body.pipeThrough(transformStream);
+      
+      console.log("流式响应开始");
+      return new Response(stream, {
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Content-Type-Options': 'nosniff'
+        }
       });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (apiError: any) {
