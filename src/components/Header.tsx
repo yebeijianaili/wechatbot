@@ -9,10 +9,10 @@ import { useState, useEffect } from 'react';
 import { getAllPosts, Post } from "@/data/posts";
 
 export default function Header() {
-  const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [posts, setPosts] = useState<Post[]>([]);
   const [filteredPosts, setFilteredPosts] = useState<Post[]>([]);
+  const [showSearchResults, setShowSearchResults] = useState(false);
 
   // 获取所有文章并设置状态
   useEffect(() => {
@@ -23,6 +23,7 @@ export default function Header() {
   useEffect(() => {
     if (!search.trim()) {
       setFilteredPosts(posts);
+      setShowSearchResults(false);
       return;
     }
 
@@ -33,18 +34,19 @@ export default function Header() {
     );
     
     setFilteredPosts(filtered);
+    setShowSearchResults(Boolean(search.trim()));
   }, [search, posts]);
 
   // 每5秒重新获取文章列表，以包含可能通过API添加的新文章
   useEffect(() => {
     const interval = setInterval(() => {
-      if (open) {
+      if (showSearchResults) {
         setPosts(getAllPosts());
       }
     }, 5000);
     
     return () => clearInterval(interval);
-  }, [open]);
+  }, [showSearchResults]);
 
   return (
     <header className="py-4 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-10 bg-background/80 backdrop-blur-md">
@@ -77,6 +79,20 @@ export default function Header() {
             >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
+            
+            {showSearchResults && filteredPosts.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-background rounded-md shadow-lg border border-blue-100 dark:border-blue-900/30 max-h-64 overflow-y-auto z-20">
+                <ul className="py-2">
+                  {filteredPosts.map((post) => (
+                    <li key={post.id} className="hover:bg-blue-50 dark:hover:bg-blue-900/10">
+                      <Link href={`/blog/${post.slug}`} className="block px-4 py-2 text-sm">
+                        {post.title}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
           
           <div className="flex items-center space-x-1">

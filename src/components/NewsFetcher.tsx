@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from './ui/button';
-import { Post } from '@/data/posts';
 import { ReloadIcon } from '@radix-ui/react-icons';
 import { useToast } from './ui/toast'; // Changed from @/ to relative path
 import { PLATFORMS, NewsPlatform } from '@/lib/news-api';
@@ -21,7 +20,8 @@ export default function NewsFetcher() {
   const [platformName, setPlatformName] = useState('今日头条');
   const { toast } = useToast();
 
-  async function fetchLatestNews() {
+  // 使用 useCallback 包装 fetchLatestNews 函数，避免依赖问题
+  const fetchLatestNews = useCallback(async () => {
     setLoading(true);
 
     try {
@@ -48,79 +48,59 @@ export default function NewsFetcher() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [selectedPlatform, toast]);
 
   // 当平台变化时自动获取新闻
   useEffect(() => {
     fetchLatestNews();
-  }, [selectedPlatform]);
+  }, [selectedPlatform, fetchLatestNews]);
 
   // 首次加载时自动获取新闻
   useEffect(() => {
     // 设置每小时自动刷新
     const interval = setInterval(fetchLatestNews, 60 * 60 * 1000);
     return () => clearInterval(interval);
-  }, []);
-
-  // 平台显示名称映射
-  const platformDisplayNames: Record<NewsPlatform, string> = {
-    'baidu': '百度热搜',
-    'zhihu': '知乎热榜',
-    'weibo': '微博热搜',
-    'jinritoutiao': '今日头条',
-    'bilibili': 'B站热榜',
-    'douyin': '抖音热点',
-    'juejin': '掘金热榜',
-    'douban': '豆瓣热榜',
-    '36kr': '36氪热榜',
-    // 添加其他平台
-  };
+  }, [fetchLatestNews]);
 
   return (
-    <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-      <div className="flex items-center gap-2">
-        <Select
-          value={selectedPlatform}
-          onValueChange={(value: string) => setSelectedPlatform(value as NewsPlatform)}
-        >
-          <SelectTrigger className="w-[150px]">
-            <SelectValue placeholder="选择平台" />
-          </SelectTrigger>
-          <SelectContent>
-            {PLATFORMS.map((platform) => (
-              <SelectItem key={platform} value={platform}>
-                {platformDisplayNames[platform]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        
-        <Button 
-          onClick={fetchLatestNews} 
-          disabled={loading}
-          variant="outline"
-          size="sm"
-        >
-          {loading ? (
-            <>
-              <ReloadIcon className="mr-2 h-4 w-4 animate-spin" />
-              更新中...
-            </>
-          ) : (
-            <>
-              <ReloadIcon className="mr-2 h-4 w-4" />
-              刷新
-            </>
-          )}
-        </Button>
+    <div className="space-y-4 rounded-lg border p-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h3 className="text-lg font-semibold mb-1">热门新闻获取</h3>
+          <p className="text-sm text-muted-foreground">
+            从各大平台获取最新热门话题
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Select value={selectedPlatform} onValueChange={(value) => setSelectedPlatform(value as NewsPlatform)}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="选择平台" />
+            </SelectTrigger>
+            <SelectContent>
+              {PLATFORMS.map((platform) => (
+                <SelectItem key={platform} value={platform}>
+                  {platformName === platform ? platformName : platform}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button variant="outline" size="sm" onClick={fetchLatestNews} disabled={loading}>
+            {loading ? (
+              <>
+                <ReloadIcon className="mr-2 h-4 w-4 animate-spin" />
+                获取中
+              </>
+            ) : (
+              "刷新"
+            )}
+          </Button>
+        </div>
       </div>
       
       {lastUpdated && (
-        <div className="text-xs text-muted-foreground flex flex-col md:flex-row md:items-center gap-1 md:gap-2">
-          <span>数据来源: {platformName}</span>
-          <span className="hidden md:inline">•</span> 
-          <span>最后更新: {lastUpdated.toLocaleString()}</span>
-        </div>
+        <p className="text-xs text-muted-foreground pt-2 border-t">
+          上次更新: {lastUpdated.toLocaleString()}
+        </p>
       )}
     </div>
   );
