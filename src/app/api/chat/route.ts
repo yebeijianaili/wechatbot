@@ -56,7 +56,20 @@ export async function POST(request: Request) {
       body: JSON.stringify(requestBody)
     });
 
-    const data = await response.json();
+    // 先获取响应文本
+    const responseText = await response.text();
+    
+    let data;
+    try {
+      // 尝试解析JSON
+      data = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error("API响应解析失败:", responseText);
+      return NextResponse.json(
+        { error: "API响应格式错误" },
+        { status: 500 }
+      );
+    }
 
     // 检查API响应是否成功
     if (!response.ok) {
@@ -68,7 +81,14 @@ export async function POST(request: Request) {
     }
 
     // 从API响应中提取助手的回复
-    const assistantReply = data.choices[0]?.message?.content || "抱歉，我无法回答这个问题。";
+    const assistantReply = data.choices?.[0]?.message?.content;
+    if (!assistantReply) {
+      console.error("API响应缺少必要的字段:", data);
+      return NextResponse.json(
+        { error: "API响应格式不正确" },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({
       reply: assistantReply
@@ -76,7 +96,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("处理聊天请求时出错:", error);
     return NextResponse.json(
-      { error: "处理请求时出错" },
+      { error: error instanceof Error ? error.message : "处理请求时出错" },
       { status: 500 }
     );
   }
